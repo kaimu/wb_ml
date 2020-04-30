@@ -64,8 +64,8 @@ use --rec_input to provide a separate dataset for recommendations
     # read dataset
     users, videos, weight_coo = read_dataset(args.inputfile)
 
-    # prepate
-    model, weight_coo = prepate(model, weight_coo)
+    # prepare
+    model, weight_coo = prepare(model, weight_coo)
 
     # if evaluation flag is set
     if args.evaluate:
@@ -92,7 +92,7 @@ use --rec_input to provide a separate dataset for recommendations
     if args.rec_inputfile is not "" and args.rec_inputfile is not args.inputfile:
         users, videos, weight_coo = read_dataset(args.rec_inputfile)
         # prepare matrix
-        model, weight_coo = prepate(model, weight_coo)
+        model, weight_coo = prepare(model, weight_coo)
 
     # recommend
     calculate_recommendations(trained_model,
@@ -108,7 +108,8 @@ def get_model(model_name, use_gpu=False):
 
     # some default params as suggested by the author of Implicit
     if issubclass(model_class, AlternatingLeastSquares):
-        params = {"factors": 16, "dtype": np.float32, "use_gpu": use_gpu}
+        params = {"iterations": 15, "factors": 32,
+                  "dtype": np.float32, "use_gpu": use_gpu}
     elif model_name == "bm25":
         params = {"K1": 100, "B": 0.5}
     elif model_name == "bpr":
@@ -117,6 +118,11 @@ def get_model(model_name, use_gpu=False):
         params = {"factors": 30, "iterations": 40, "regularization": 1.5}
     else:
         params = {}
+
+    if issubclass(model_class, NMSLibAlternatingLeastSquares):
+        params["index_params"] = {'M': 8, 'post': 0,
+                                  'efConstruction': 600}
+        params["query_params"] = {'ef': 300}
 
     return model_class(**params)
 
@@ -164,7 +170,7 @@ def evaluate(trained_model, train_csr, test_csr):
     start = time.time()
 
     m = ranking_metrics_at_k(trained_model, train_csr.T.tocsr(),
-                             test_csr.T.tocsr(), K=100, num_threads=0)
+                             test_csr.T.tocsr(), K=1000, num_threads=0)
     logging.debug("Evaluated in in %0.2fs", time.time() - start)
     logging.info("Evaluation metrics: %s", m)
 
@@ -196,16 +202,18 @@ def calculate_recommendations(model, users, videos, weight_csr, output_filename,
                   max_users, time.time() - start)
 
 
-def prepate(model, weight_coo):
+def prepare(model, weight_coo):
     """ Prepares a model and a weight matrix in case of ALS """
 
     # if we're training an ALS based model, weight input by bm25
     if issubclass(model.__class__, AlternatingLeastSquares):
-        # lets weight these models by bm25weight.
-        logging.debug("Weighting matrix by bm25_weight")
-        weight_coo = bm25_weight(weight_coo, K1=100, B=0.8)
-        # also disable building approximate recommend index
+        # Disable building approximate recommend index
         model.approximate_similar_items = False
+
+        # Avoding bm25_weight seems to result in a better AUC, so comment block below for now
+        # logging.debug("Weighting matrix by bm25_weight")
+        # weight_coo = bm25_weight(weight_coo, K1=100, B=0.8)
+
     return model, weight_coo
 
 

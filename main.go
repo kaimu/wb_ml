@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-var python = flag.String("python", "python", "Python3 executable path")
+var python = flag.String("python", "python3", "Python3 executable path")
 var input = flag.String("input", "data", "input dataframes folder path")
 var recInput = flag.String("rec_input", "", "recommendations input dataframes folder path")
 var output = flag.String("output", "recommendations.csv", "output file path")
