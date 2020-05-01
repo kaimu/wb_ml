@@ -120,6 +120,8 @@ def get_model(model_name, use_gpu=False):
         params = {}
 
     if issubclass(model_class, NMSLibAlternatingLeastSquares):
+        # `post: 2` might be a nice way to potentially decrease evaluating / recommending time
+        # while increasing index-building time (needs research)
         params["index_params"] = {'M': 8, 'post': 0,
                                   'efConstruction': 600}
         params["query_params"] = {'ef': 300}

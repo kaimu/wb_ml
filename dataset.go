@@ -55,7 +55,7 @@ func generateDataset(inputDir, datasetPath string) (users map[string]VideosPerUs
 	// <user_id>:<filename>. Detects splitting a user between multiple dataframes
 	var filePerUser = map[string]string{}
 	// Set temporary dir and the dataset
-	dataset, err := os.OpenFile(datasetPath, os.O_CREATE, os.ModeTemporary)
+	dataset, err := os.OpenFile(datasetPath, os.O_CREATE|os.O_RDWR, 0755)
 	if err != nil {
 		return
 	}
